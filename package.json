@@ -1,0 +1,22 @@
+{
+  "name": "playpix",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@grammyjs/parse-mode": "^1.6.0",
+    "@grammyjs/runner": "^1.0.4",
+    "deta": "^1.1.0",
+    "dotenv": "^16.0.3",
+    "grammy": "^1.14.1",
+    "node-cache": "^5.1.2"
+  },
+  "devDependencies": {
+    "typescript": "^4.9.5"
+  }
+}
