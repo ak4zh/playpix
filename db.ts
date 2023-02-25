@@ -10,11 +10,12 @@ export const tokensDB = deta.Base('tokens')
 export const historyDB = deta.Base('history')
 
 export const getConnections = async () => {
+    const query = { enabled: true }
     if (mycache.get('connections')) return mycache.get('connections');
-    let res = await connectionsDB.fetch();
+    let res = await connectionsDB.fetch(query);
     let connections = res.items;
     while (res.last){
-        res = await connectionsDB.fetch({}, {last: res.last});
+        res = await connectionsDB.fetch(query, {last: res.last});
         connections = connections.concat(res.items);
     }
     mycache.set('connections', connections)
