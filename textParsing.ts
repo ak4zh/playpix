@@ -17,7 +17,7 @@ export const KNOW_ENTITY_TYPES = [
 
 export const parseTelegramMessage = (ctx: Context) => {
 	const text = ctx.msg?.text || ctx.msg?.caption;
-	const entities = ctx.msg?.entities?.filter((e) => KNOW_ENTITY_TYPES.includes(e.type));
+	const entities = (ctx.msg?.entities || ctx.msg?.caption_entities)?.filter((e) => KNOW_ENTITY_TYPES.includes(e.type));
 
 	if (!entities || !text) {
 		return text;
