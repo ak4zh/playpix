@@ -31,9 +31,6 @@ const bot = new Bot("6206376216:AAGgs5rvxl4XdHYyuPUfq4wQs0ZsqC-FBcw");
 bot.api.config.use(parseMode('html'));
 bot.use(saveDialog);
 bot.command('start', async (ctx) => await ctx.reply('Welcome!'))
-bot.command('cache', async (ctx) => {
-    await ctx.reply('Cache cleaned!')
-})
 
 bot
     .on('msg', async (ctx) => {

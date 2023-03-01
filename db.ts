@@ -18,6 +18,6 @@ export const getConnections = async () => {
         res = await connectionsDB.fetch(query, {last: res.last});
         connections = connections.concat(res.items);
     }
-    mycache.set('connections', connections)
+    mycache.set('connections', connections, 10)
     return connections
 }
