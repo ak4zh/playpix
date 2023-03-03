@@ -3,17 +3,17 @@ import { dialogsDB, getConnections, historyDB } from './db';
 import { parseTelegramMessage } from './textParsing';
 import { parseMode } from '@grammyjs/parse-mode';
 import { run } from "@grammyjs/runner";
+import * as dotenv from 'dotenv';
+dotenv.config()
 
-const added: Array<number> = []
+const added: Array<string> = []
 
 async function saveDialog(ctx: Context, next: NextFunction): Promise<void> {
-	// @ts-ignore
-	if (ctx.chat && !added.includes(ctx.chat.id)) {
-		console.log(ctx.chat)
-		added.push(ctx.chat.id)
-        // @ts-ignore
-		await dialogsDB.put(ctx.chat, `${ctx.chat?.id}`)
-	} 
+	const chatKey = `${ctx.me.id}:${ctx.chat?.id}`
+	if (!added.includes(chatKey)) {
+		added.push(chatKey);
+		await dialogsDB.put({ ...ctx.chat, botKey: ctx.me.id.toString()  }, chatKey);
+	}
 	await next();
 }
 
@@ -27,15 +27,16 @@ async function getProcessedText(text: string, connection: any) {
 }
 
 // @ts-ignore
-const bot = new Bot("6206376216:AAGgs5rvxl4XdHYyuPUfq4wQs0ZsqC-FBcw");
+const bot = new Bot(process.env.BOT_TOKEN);
+const botKey = process.env.BOT_TOKEN?.split(':')[0] as string
 bot.api.config.use(parseMode('html'));
 bot.use(saveDialog);
 bot.command('start', async (ctx) => await ctx.reply('Welcome!'))
-
+bot.api.deleteWebhook().catch(err => console.log(err))
 bot
     .on('msg', async (ctx) => {
         if (ctx && ctx.msg && ctx.chat) {
-            const connections = await getConnections();
+            const connections = await getConnections(botKey);
             // @ts-ignore
             for (const connection of connections.filter(c => c?.filters?.length)) {
                 if (ctx?.chat?.id?.toString() !== connection.source) continue;
@@ -56,7 +57,7 @@ bot
                         // @ts-ignore
                         if (ctx.msg?.reply_to_message?.message_id) {
                             // @ts-ignore
-                            const historyMesssages = await historyDB.fetch({ connection: connection.key, source: ctx.chat.id, source_msg_id: ctx.msg?.reply_to_message.message_id, destination: destination }, { limit: 1 })
+                            const historyMesssages = await historyDB.fetch({ botKey, connection: connection.key, source: ctx.chat.id, source_msg_id: ctx.msg?.reply_to_message.message_id, destination: destination }, { limit: 1 })
                             if (historyMesssages.items?.length) reply_to_message_id = historyMesssages.items?.[0].destination_msg_id
                         }
                         const originalText = parseTelegramMessage(ctx) || '';
@@ -68,9 +69,9 @@ bot
                             // @ts-ignore
                             const sentMessage = ctx?.msg?.text ? await ctx.api.sendMessage(destination, processedText, { reply_to_message_id, disable_web_page_preview }) : await ctx.copyMessage(destination, { caption: processedText , reply_to_message_id })
                             // @ts-ignore
-                            await historyDB.put({ connection: connection.key, source: ctx.chat.id, destination: destination, source_msg_id: ctx.msg.message_id, destination_msg_id: sentMessage.message_id })		
+                            await historyDB.put({ botKey, connection: connection.key, source: ctx.chat.id, destination: destination, source_msg_id: ctx.msg.message_id, destination_msg_id: sentMessage.message_id })		
                         }
-                    }				
+                    }
                 } catch (err) {
                     console.log(err)
                 }
@@ -81,7 +82,7 @@ bot
 bot
     .on('edited_message', async (ctx) => {
         if (ctx && ctx.msg && ctx.chat) {
-            const connections = await getConnections();
+            const connections = await getConnections(botKey);
             // @ts-ignore
             for (const connection of connections.filter(c => c?.filters?.length)) {
                 try {
@@ -95,13 +96,13 @@ bot
                     // @ts-ignore
                     if (!ctx.has((connection?.filters).filter(f => !f?.match(/:checked$/)))) continue;
                     // @ts-ignore
-                    const historyMesssages = await historyDB.fetch({ connection: connection.key, source: ctx.chat.id, source_msg_id: ctx.msg.message_id, destination: destination }, { limit: 1 })
+                    const historyMesssages = await historyDB.fetch({ botKey, connection: connection.key, source: ctx.chat.id, source_msg_id: ctx.msg.message_id, destination: destination }, { limit: 1 })
                     if (!historyMesssages.items?.length) return
                     const originalText = parseTelegramMessage(ctx) || '';
                     const processedText = await getProcessedText(originalText, connection);
                     for (const history of historyMesssages.items) {
                         // @ts-ignore
-                        await ctx.api.editMessageText(destination, history.destination_msg_id, processedText)
+                        await ctx.api.editMessageText(destination, history.destination_msg_id, processedText, { disable_web_page_preview })
                     };	
                 } catch (err) {console.log(err)}
             }

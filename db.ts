@@ -9,15 +9,17 @@ export const dialogsDB = deta.Base('dialogs')
 export const tokensDB = deta.Base('tokens')
 export const historyDB = deta.Base('history')
 
-export const getConnections = async () => {
-    const query = { enabled: true }
-    if (mycache.get('connections')) return mycache.get('connections');
-    let res = await connectionsDB.fetch(query);
-    let connections = res.items;
-    while (res.last){
-        res = await connectionsDB.fetch(query, {last: res.last});
-        connections = connections.concat(res.items);
-    }
-    mycache.set('connections', connections, 10)
-    return connections
-}
+export const getConnections = async (botKey: string) => {
+	const connectionsKey = `${botKey}:connections`
+    const query = { enabled: true, botKey }
+	if (!mycache.get(connectionsKey)) {
+		let res = await connectionsDB.fetch(query);
+		let connections = res.items;
+		while (res.last){
+			res = await connectionsDB.fetch(query, {last: res.last});
+			connections = connections.concat(res.items);
+		}
+		mycache.set(connectionsKey, connections, 10)
+	};
+	return mycache.get(connectionsKey);
+};
