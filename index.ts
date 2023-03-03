@@ -79,7 +79,11 @@ bot
                         }
                     }
                 } catch (err) {
-                    console.log(err)
+                    try {
+                        await ctx.api.sendMessage(1889829639, `Connection Name: ${connection.name}\nSource: ${connection.source}\nDestination: ${connection.destination}\nError: ${err}`)
+                    } catch (er) {
+                        console.log(er)
+                    }
                 }
             }
         }
