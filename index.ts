@@ -3,7 +3,6 @@ import { dialogsDB, getConnections, historyDB } from './db';
 import { parseTelegramMessage } from './textParsing';
 import { parseMode } from '@grammyjs/parse-mode';
 import { run } from "@grammyjs/runner";
-import { apiThrottler } from "@grammyjs/transformer-throttler";
 import { autoRetry } from '@grammyjs/auto-retry'
 import * as dotenv from 'dotenv';
 dotenv.config()
@@ -34,8 +33,6 @@ if (!botToken) {
 }
 const botKey = process.env.BOT_TOKEN?.split(':')[0] as string;
 const bot = new Bot(botToken);
-const throttler = apiThrottler();
-bot.api.config.use(throttler);
 bot.api.config.use(parseMode('html'));
 bot.api.config.use(autoRetry());
 
