@@ -3,6 +3,8 @@ import { dialogsDB, getConnections, historyDB } from './db';
 import { parseTelegramMessage } from './textParsing';
 import { parseMode } from '@grammyjs/parse-mode';
 import { run } from "@grammyjs/runner";
+import { apiThrottler } from "@grammyjs/transformer-throttler";
+import { autoRetry } from '@grammyjs/auto-retry'
 import * as dotenv from 'dotenv';
 dotenv.config()
 
@@ -26,10 +28,17 @@ async function getProcessedText(text: string, connection: any) {
 	return text
 }
 
-// @ts-ignore
-const bot = new Bot(process.env.BOT_TOKEN);
-const botKey = process.env.BOT_TOKEN?.split(':')[0] as string
+const botToken = process.env.BOT_TOKEN;
+if (!botToken) {
+    throw Error("BOT_TOKEN is required");
+}
+const botKey = process.env.BOT_TOKEN?.split(':')[0] as string;
+const bot = new Bot(botToken);
+const throttler = apiThrottler();
+bot.api.config.use(throttler);
 bot.api.config.use(parseMode('html'));
+bot.api.config.use(autoRetry());
+
 bot.use(saveDialog);
 bot.command('start', async (ctx) => await ctx.reply('Welcome!'))
 bot.api.deleteWebhook().catch(err => console.log(err))
