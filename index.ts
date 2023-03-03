@@ -40,7 +40,7 @@ bot.use(saveDialog);
 bot.command('start', async (ctx) => await ctx.reply('Welcome!'))
 bot.api.deleteWebhook().catch(err => console.log(err))
 bot
-    .on('msg', async (ctx) => {
+    .on('msg', async (ctx: Context) => {
         if (ctx && ctx.msg && ctx.chat) {
             const connections = await getConnections(botKey);
             // @ts-ignore
@@ -90,7 +90,7 @@ bot
     })
 
 bot
-    .on('edited_message', async (ctx) => {
+    .on('edited_message', async (ctx: Context) => {
         if (ctx && ctx.msg && ctx.chat) {
             const connections = await getConnections(botKey);
             // @ts-ignore
