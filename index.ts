@@ -4,7 +4,11 @@ import { parseTelegramMessage } from './textParsing';
 import { parseMode } from '@grammyjs/parse-mode';
 import { run } from "@grammyjs/runner";
 import { autoRetry } from '@grammyjs/auto-retry'
+// @ts-ignore
+import businessHours from "business-hours.js";
+import moment from 'moment';
 import * as dotenv from 'dotenv';
+import { defaultBusinessHours, parseBusinessHour } from './utils';
 dotenv.config()
 
 const added: Array<string> = []
@@ -45,6 +49,13 @@ bot
             const connections = await getConnections(botKey);
             // @ts-ignore
             for (const connection of connections.filter(c => c?.filters?.length)) {
+                if (connection.business_hours) {
+                    businessHours.init(parseBusinessHour(connection.business_hours));
+                    // @ts-ignore
+                    let now = moment().tz(defaultBusinessHours.timeZone)
+                    now.subtract(1, "minutes")
+                    if (!businessHours.isOpenNow(now)) continue;
+                }
                 if (ctx?.chat?.id?.toString() !== connection.source) continue;
                 const destination = Number(connection.destination)
                 const whitelist_pattern = connection.whitelist_pattern ? new RegExp(connection.whitelist_pattern?.toString()) : undefined
