@@ -54,7 +54,7 @@ bot
                     // @ts-ignore
                     let now = moment().tz(defaultBusinessHours.timeZone)
                     now.subtract(1, "minutes")
-                    if (!businessHours.isOpenNow(now)) continue;
+                    if (businessHours.isClosedNow(now)) continue;
                 }
                 if (ctx?.chat?.id?.toString() !== connection.source) continue;
                 const destination = Number(connection.destination)
