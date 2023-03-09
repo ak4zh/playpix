@@ -49,6 +49,8 @@ bot.on('msg:new_chat_title', async (ctx: Context) => {
 bot
     .on('msg', async (ctx: Context) => {
         if (ctx && ctx.msg && ctx.chat) {
+            const source_msg_id = ctx.msg.message_id
+            const source = ctx.chat.id
             const connections = await getConnections(botKey);
             // @ts-ignore
             for (const connection of connections.filter(c => c?.filters?.length)) {
@@ -91,7 +93,7 @@ bot
                             const pendingMessage = ctx?.msg?.text ? ctx.api.sendMessage(destination, processedText, { reply_to_message_id, disable_web_page_preview }) : ctx.copyMessage(destination, { caption: processedText , reply_to_message_id })
                             // @ts-ignore
                             pendingMessage
-                                .then((sentMessage) => historyDB.put({ botKey, connection: connection.key, source: ctx.chat.id, destination: destination, source_msg_id: ctx.msg.message_id, destination_msg_id: sentMessage.message_id }))		
+                                .then((sentMessage) => historyDB.put({ botKey, connection: connection.key, source, destination: destination, source_msg_id, destination_msg_id: sentMessage.message_id }))		
                         }
                     }
                 } catch (err) {
