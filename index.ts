@@ -43,6 +43,9 @@ bot.api.config.use(autoRetry());
 bot.use(saveDialog);
 bot.command('start', async (ctx) => await ctx.reply('Welcome!'))
 bot.api.deleteWebhook().catch(err => console.log(err))
+bot.on('msg:new_chat_title', async (ctx: Context) => {
+    await dialogsDB.put({ ...ctx.chat, botKey: ctx.me.id.toString()  }, `${ctx.me.id}:${ctx.chat?.id}`);
+})
 bot
     .on('msg', async (ctx: Context) => {
         if (ctx && ctx.msg && ctx.chat) {
