@@ -71,33 +71,34 @@ bot
 
                 try {
                     // @ts-ignore
-                    if (ctx?.msg?.poll) { await ctx.copyMessage(destination);
+                    if (ctx?.msg?.poll) { 
+                        ctx.copyMessage(destination);
                     } else {
-                        let reply_to_message_id = undefined
+                        let reply_to_message_id: number|undefined = undefined
                         // @ts-ignore
                         if (ctx.msg?.reply_to_message?.message_id) {
                             // @ts-ignore
                             const historyMesssages = await historyDB.fetch({ botKey, connection: connection.key, source: ctx.chat.id, source_msg_id: ctx.msg?.reply_to_message.message_id, destination: destination }, { limit: 1 })
-                            if (historyMesssages.items?.length) reply_to_message_id = historyMesssages.items?.[0].destination_msg_id
+                            if (historyMesssages.items?.length) reply_to_message_id = historyMesssages.items?.[0].destination_msg_id as number || undefined
                         }
                         const originalText = parseTelegramMessage(ctx) || '';
                         if (connection.sendType === 'fwd') {
                             // @ts-ignore
-                            await ctx.forwardMessage(destination);
+                            ctx.forwardMessage(destination);
                         } else {
                             const processedText = await getProcessedText(originalText, connection);
                             // @ts-ignore
-                            const sentMessage = ctx?.msg?.text ? await ctx.api.sendMessage(destination, processedText, { reply_to_message_id, disable_web_page_preview }) : await ctx.copyMessage(destination, { caption: processedText , reply_to_message_id })
+                            const pendingMessage = ctx?.msg?.text ? ctx.api.sendMessage(destination, processedText, { reply_to_message_id, disable_web_page_preview }) : ctx.copyMessage(destination, { caption: processedText , reply_to_message_id })
                             // @ts-ignore
-                            await historyDB.put({ botKey, connection: connection.key, source: ctx.chat.id, destination: destination, source_msg_id: ctx.msg.message_id, destination_msg_id: sentMessage.message_id })		
+                            pendingMessage
+                                .then((sentMessage) => historyDB.put({ botKey, connection: connection.key, source: ctx.chat.id, destination: destination, source_msg_id: ctx.msg.message_id, destination_msg_id: sentMessage.message_id }))		
                         }
                     }
                 } catch (err) {
-                    try {
-                        await ctx.api.sendMessage(1889829639, `Connection Name: ${connection.name}\nSource: ${connection.source}\nDestination: ${connection.destination}\nError: ${err}`)
-                    } catch (er) {
-                        console.log(er)
-                    }
+                    ctx.api
+                        .sendMessage(1889829639, `Connection Name: ${connection.name}\nSource: ${connection.source}\nDestination: ${connection.destination}\nError: ${err}`)
+                        .catch(err => console.log(err))
+                    
                 }
             }
         }
