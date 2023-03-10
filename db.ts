@@ -24,3 +24,13 @@ export const getConnections = async (botKey: string) => {
 	};
 	return mycache.get(connectionsKey) as Promise<Array<Connection>>;
 };
+
+export const getHistoryMessages = async (query: {[key: string]: any}) => {
+	let res = await historyDB.fetch(query);
+	let messages = res.items;
+	while (res.last){
+		res = await historyDB.fetch(query, { last: res.last });
+		messages = messages.concat(res.items);
+	}
+	return messages
+}

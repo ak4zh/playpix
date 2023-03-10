@@ -1,5 +1,5 @@
 import { Bot, Context, GrammyError, HttpError, type NextFunction } from 'grammy';
-import { dialogsDB, getConnections, historyDB } from './db';
+import { dialogsDB, getConnections, getHistoryMessages, historyDB } from './db';
 import { parseTelegramMessage } from './textParsing';
 import { parseMode } from '@grammyjs/parse-mode';
 import { run } from "@grammyjs/runner";
@@ -80,7 +80,7 @@ const handleEditedMessage = async (ctx: Context, connection: Connection) => {
 		)
 			return;
 
-		const historyMesssages = await historyDB.fetch(
+		const historyMesssages = await getHistoryMessages(
 			{
 				connection: connection.key,
 				source: ctx.chat.id,
@@ -88,11 +88,11 @@ const handleEditedMessage = async (ctx: Context, connection: Connection) => {
 				destination: destination
 			}
 		);
-		if (!historyMesssages.items?.length) return;
+		if (!historyMesssages?.length) return;
 		const originalText = parseTelegramMessage(ctx) || '';
 		const processedText = await getProcessedText(originalText, connection);
 		const handlers = []
-		for (const history of historyMesssages.items) {
+		for (const history of historyMesssages) {
 			const message_id = Number(history.destination_msg_id) || undefined;
 			if (!message_id) continue;
 			handlers.push(
