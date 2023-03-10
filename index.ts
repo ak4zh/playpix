@@ -115,7 +115,7 @@ async function responseTime(
     await next();
     const after = Date.now();
 	await ctx.api
-		.sendMessage(-886439865	, `Took ${after - before} ms`)
+		.sendMessage(-886439865	, `${ctx.me.username}: Took ${after - before} ms`)
 		.catch(err => console.log(err))
 }
 
