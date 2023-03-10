@@ -1,5 +1,6 @@
 import { Deta } from 'deta';
 import * as cache from 'node-cache'
+import { Connection } from './utils';
 
 const mycache = new cache.default({ stdTTL: 10 })
 const deta = Deta("c0XVNaHgiYav_nhf4hzbSd1XZDjrb6hLJ6h1Amgttwwd9")
@@ -21,5 +22,5 @@ export const getConnections = async (botKey: string) => {
 		}
 		mycache.set(connectionsKey, connections, 10)
 	};
-	return mycache.get(connectionsKey);
+	return mycache.get(connectionsKey) as Promise<Array<Connection>>;
 };

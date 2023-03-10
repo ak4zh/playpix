@@ -8,10 +8,104 @@ import { autoRetry } from '@grammyjs/auto-retry'
 import businessHours from "business-hours.js";
 import moment from 'moment';
 import * as dotenv from 'dotenv';
-import { defaultBusinessHours, parseBusinessHour } from './utils';
+import { Connection, defaultBusinessHours, parseBusinessHour } from './utils';
 dotenv.config()
 
 const added: Array<string> = []
+
+async function handleMessage(ctx: Context, connection: Connection) {
+    const source = ctx.chat?.id
+    const source_msg_id = ctx.msg?.message_id
+    if (connection.business_hours) {
+        businessHours.init(parseBusinessHour(connection.business_hours));
+        // @ts-ignore
+        let now = moment().tz(defaultBusinessHours.timeZone)
+        now.subtract(1, "minutes")
+        if (businessHours.isClosedNow(now)) return;
+    }
+    const destination = Number(connection.destination)
+    const whitelist_pattern = connection.whitelist_pattern ? new RegExp(connection.whitelist_pattern?.toString()) : undefined
+    const blacklist_pattern = connection.blacklist_pattern ? new RegExp(connection.blacklist_pattern?.toString()) : undefined
+    const disable_web_page_preview = !!connection.disable_web_page_preview
+    if (whitelist_pattern && !((ctx.msg?.text || ctx.msg?.caption)?.match(whitelist_pattern))) return;
+    if (blacklist_pattern && (ctx.msg?.text || ctx.msg?.caption)?.match(new RegExp(blacklist_pattern))) return;
+
+    try {
+        // @ts-ignore
+        if (ctx?.msg?.poll) { 
+            await ctx.copyMessage(destination);
+        } else {
+            let reply_to_message_id: number|undefined = undefined
+            // @ts-ignore
+            if (ctx.msg?.reply_to_message?.message_id) {
+                // @ts-ignore
+                const historyMesssages = await historyDB.fetch({ botKey, connection: connection.key, source: ctx.chat.id, source_msg_id: ctx.msg?.reply_to_message.message_id, destination: destination }, { limit: 1 })
+                if (historyMesssages.items?.length) reply_to_message_id = historyMesssages.items?.[0].destination_msg_id as number || undefined
+            }
+            const originalText = parseTelegramMessage(ctx) || '';
+            if (connection.sendType === 'fwd') {
+                // @ts-ignore
+                ctx.forwardMessage(destination);
+            } else {
+                const processedText = await getProcessedText(originalText, connection);
+                // @ts-ignore
+                const sentMessage = ctx?.msg?.text ? await ctx.api.sendMessage(destination, processedText, { reply_to_message_id, disable_web_page_preview }) : await ctx.copyMessage(destination, { caption: processedText , reply_to_message_id })
+                await historyDB.put({ botKey, connection: connection.key, source, destination, source_msg_id, destination_msg_id: sentMessage.message_id })
+            }
+        }
+    } catch (err) {
+        await ctx.api
+            .sendMessage(1889829639, `Connection Name: ${connection.name}\nSource: ${connection.source}\nDestination: ${connection.destination}\nError: ${err}`)
+            .catch(err => console.log(err))
+    }
+}
+
+const handleEditedMessage = async (ctx: Context, connection: Connection) => {
+	if (!(ctx && ctx.msg && ctx.chat)) return;
+
+	try {
+		const destination = Number(connection.destination);
+		const whitelist_pattern = connection.whitelist_pattern
+			? new RegExp(connection.whitelist_pattern?.toString())
+			: undefined;
+		const blacklist_pattern = connection.blacklist_pattern
+			? new RegExp(connection.blacklist_pattern?.toString())
+			: undefined;
+		const disable_web_page_preview = !!connection.disable_web_page_preview;
+		if (whitelist_pattern && !(ctx.msg?.text || ctx.msg?.caption)?.match(whitelist_pattern))
+			return;
+		if (
+			blacklist_pattern &&
+			(ctx.msg?.text || ctx.msg?.caption)?.match(new RegExp(blacklist_pattern))
+		)
+			return;
+
+		const historyMesssages = await historyDB.fetch(
+			{
+				connection: connection.key,
+				source: ctx.chat.id,
+				source_msg_id: ctx.msg.message_id,
+				destination: destination
+			}
+		);
+		if (!historyMesssages.items?.length) return;
+		const originalText = parseTelegramMessage(ctx) || '';
+		const processedText = await getProcessedText(originalText, connection);
+		const handlers = []
+		for (const history of historyMesssages.items) {
+			const message_id = Number(history.destination_msg_id) || undefined;
+			if (!message_id) continue;
+			handlers.push(
+				ctx.api.editMessageText(destination, message_id, processedText, {
+					disable_web_page_preview
+				})
+			)
+		}
+		await Promise.all(handlers);
+	} catch (err) {
+		console.log(err);
+	}
+}
 
 async function responseTime(
     ctx: Context,
@@ -20,7 +114,9 @@ async function responseTime(
     const before = Date.now();
     await next();
     const after = Date.now();
-    console.log(`Response time: ${after - before} ms`);
+	await ctx.api
+		.sendMessage(-886439865	, `Took ${after - before} ms`)
+		.catch(err => console.log(err))
 }
 
 async function saveDialog(ctx: Context, next: NextFunction): Promise<void> {
@@ -56,95 +152,50 @@ bot.api.deleteWebhook().catch(err => console.log(err))
 bot.on('msg:new_chat_title', async (ctx: Context) => {
     await dialogsDB.put({ ...ctx.chat, botKey: ctx.me.id.toString()  }, `${ctx.me.id}:${ctx.chat?.id}`);
 })
-bot
-    .on('msg', async (ctx: Context) => {
-        if (ctx && ctx.msg && ctx.chat) {
-            const source_msg_id = ctx.msg.message_id
-            const source = ctx.chat.id
-            const connections = await getConnections(botKey);
-            // @ts-ignore
-            for (const connection of connections.filter(c => c?.filters?.length)) {
-                if (connection.business_hours) {
-                    businessHours.init(parseBusinessHour(connection.business_hours));
-                    // @ts-ignore
-                    let now = moment().tz(defaultBusinessHours.timeZone)
-                    now.subtract(1, "minutes")
-                    if (businessHours.isClosedNow(now)) continue;
-                }
-                if (ctx?.chat?.id?.toString() !== connection.source) continue;
-                const destination = Number(connection.destination)
-                const whitelist_pattern = connection.whitelist_pattern ? new RegExp(connection.whitelist_pattern?.toString()) : undefined
-                const blacklist_pattern = connection.blacklist_pattern ? new RegExp(connection.blacklist_pattern?.toString()) : undefined
-                const disable_web_page_preview = !!connection.disable_web_page_preview
-                if (whitelist_pattern && !((ctx.msg?.text || ctx.msg?.caption)?.match(whitelist_pattern))) continue;
-                if (blacklist_pattern && (ctx.msg?.text || ctx.msg?.caption)?.match(new RegExp(blacklist_pattern))) continue;
-                // @ts-ignore
-                if (!ctx.has((connection?.filters).filter(f => !f?.match(/:checked$/)))) continue;
 
-                try {
-                    // @ts-ignore
-                    if (ctx?.msg?.poll) { 
-                        ctx.copyMessage(destination);
-                    } else {
-                        let reply_to_message_id: number|undefined = undefined
-                        // @ts-ignore
-                        if (ctx.msg?.reply_to_message?.message_id) {
-                            // @ts-ignore
-                            const historyMesssages = await historyDB.fetch({ botKey, connection: connection.key, source: ctx.chat.id, source_msg_id: ctx.msg?.reply_to_message.message_id, destination: destination }, { limit: 1 })
-                            if (historyMesssages.items?.length) reply_to_message_id = historyMesssages.items?.[0].destination_msg_id as number || undefined
-                        }
-                        const originalText = parseTelegramMessage(ctx) || '';
-                        if (connection.sendType === 'fwd') {
-                            // @ts-ignore
-                            ctx.forwardMessage(destination);
-                        } else {
-                            const processedText = await getProcessedText(originalText, connection);
-                            // @ts-ignore
-                            const pendingMessage = ctx?.msg?.text ? ctx.api.sendMessage(destination, processedText, { reply_to_message_id, disable_web_page_preview }) : ctx.copyMessage(destination, { caption: processedText , reply_to_message_id })
-                            // @ts-ignore
-                            pendingMessage
-                                .then((sentMessage) => historyDB.put({ botKey, connection: connection.key, source, destination: destination, source_msg_id, destination_msg_id: sentMessage.message_id }))		
-                        }
-                    }
-                } catch (err) {
-                    ctx.api
-                        .sendMessage(1889829639, `Connection Name: ${connection.name}\nSource: ${connection.source}\nDestination: ${connection.destination}\nError: ${err}`)
-                        .catch(err => console.log(err))
-                    
-                }
+bot.on('msg', async (ctx: Context) => {
+    const connections = await getConnections(botKey);
+    const handlers = []
+    const relevantConnections = connections.filter(connection => 
+        // check connection has filters
+        connection?.filters?.length &&
+        // select connections for this source
+        connection.source === ctx?.chat?.id?.toString() &&
+        // check message type is selected
+        ctx.has(connection?.filters.filter((f: string) => !f?.match(/:checked$/)))
+    )
+    for (const connection of relevantConnections) {
+        if (botKey === '5795753059') {
+            let stress = 0
+            while (stress < 60) {
+                stress ++;
+                handlers.push(handleMessage(ctx, connection));
             }
+        } else {
+            handlers.push(handleMessage(ctx, connection))
         }
-    })
+    }
+    await Promise.all(handlers)
+});
 
-bot
-    .on('edited_message', async (ctx: Context) => {
-        if (ctx && ctx.msg && ctx.chat) {
-            const connections = await getConnections(botKey);
-            // @ts-ignore
-            for (const connection of connections.filter(c => c?.filters?.length)) {
-                try {
-                    if (ctx?.chat?.id?.toString() !== connection.source) continue;
-                    const destination = Number(connection.destination)
-                    const whitelist_pattern = connection.whitelist_pattern ? new RegExp(connection.whitelist_pattern?.toString()) : undefined
-                    const blacklist_pattern = connection.blacklist_pattern ? new RegExp(connection.blacklist_pattern?.toString()) : undefined
-                    const disable_web_page_preview = !!connection.disable_web_page_preview
-                    if (whitelist_pattern && !((ctx.msg?.text || ctx.msg?.caption)?.match(whitelist_pattern))) continue;
-                    if (blacklist_pattern && (ctx.msg?.text || ctx.msg?.caption)?.match(new RegExp(blacklist_pattern))) continue;
-                    // @ts-ignore
-                    if (!ctx.has((connection?.filters).filter(f => !f?.match(/:checked$/)))) continue;
-                    // @ts-ignore
-                    const historyMesssages = await historyDB.fetch({ botKey, connection: connection.key, source: ctx.chat.id, source_msg_id: ctx.msg.message_id, destination: destination }, { limit: 1 })
-                    if (!historyMesssages.items?.length) return
-                    const originalText = parseTelegramMessage(ctx) || '';
-                    const processedText = await getProcessedText(originalText, connection);
-                    for (const history of historyMesssages.items) {
-                        // @ts-ignore
-                        await ctx.api.editMessageText(destination, history.destination_msg_id, processedText, { disable_web_page_preview })
-                    };	
-                } catch (err) {console.log(err)}
-            }
-        }
-    })
+bot.on('edit', async (ctx: Context) => {
+    const handlers = []
+    const connections = await getConnections(botKey);
+    const relevantConnections = connections.filter(connection => 
+        // check connection has filters
+        connection?.filters?.length &&
+        // select connections for this source
+        connection.source === ctx?.chat?.id?.toString() &&
+        // check message type is selected
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        ctx.has(connection?.filters.filter((f: string) => !f?.match(/:checked$/)).map(f => f === 'msg' ? 'edit' : `edit:${f}`))
+    )
+    for (const connection of relevantConnections) {
+        handlers.push(handleEditedMessage(ctx, connection))
+    }
+    await Promise.all(handlers)
+});
 
 bot.catch((err) => {
     const ctx = err.ctx;
