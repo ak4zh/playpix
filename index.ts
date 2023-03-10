@@ -33,7 +33,7 @@ async function handleMessage(ctx: Context, connection: Connection) {
     try {
         // @ts-ignore
         if (ctx?.msg?.poll) { 
-            await ctx.copyMessage(destination);
+            return await ctx.copyMessage(destination);
         } else {
             let reply_to_message_id: number|undefined = undefined
             // @ts-ignore
@@ -45,12 +45,12 @@ async function handleMessage(ctx: Context, connection: Connection) {
             const originalText = parseTelegramMessage(ctx) || '';
             if (connection.sendType === 'fwd') {
                 // @ts-ignore
-                ctx.forwardMessage(destination);
+                return ctx.forwardMessage(destination);
             } else {
                 const processedText = await getProcessedText(originalText, connection);
                 // @ts-ignore
                 const sentMessage = ctx?.msg?.text ? await ctx.api.sendMessage(destination, processedText, { reply_to_message_id, disable_web_page_preview }) : await ctx.copyMessage(destination, { caption: processedText , reply_to_message_id })
-                await historyDB.put({ botKey, connection: connection.key, source, destination, source_msg_id, destination_msg_id: sentMessage.message_id })
+                return await historyDB.put({ botKey, connection: connection.key, source, destination, source_msg_id, destination_msg_id: sentMessage.message_id })
             }
         }
     } catch (err) {
@@ -107,18 +107,6 @@ const handleEditedMessage = async (ctx: Context, connection: Connection) => {
 	}
 }
 
-async function responseTime(
-    ctx: Context,
-    next: NextFunction, // is an alias for: () => Promise<void>
-): Promise<void> {
-    const before = Date.now();
-    await next();
-    const after = Date.now();
-	await ctx.api
-		.sendMessage(-886439865	, `${ctx.me.username}: Took ${after - before} ms`)
-		.catch(err => console.log(err))
-}
-
 async function saveDialog(ctx: Context, next: NextFunction): Promise<void> {
 	const chatKey = `${ctx.me.id}:${ctx.chat?.id}`
 	if (!added.includes(chatKey)) {
@@ -145,7 +133,6 @@ const botKey = process.env.BOT_TOKEN?.split(':')[0] as string;
 const bot = new Bot(botToken);
 bot.api.config.use(parseMode('html'));
 bot.api.config.use(autoRetry());
-bot.use(responseTime);
 bot.use(saveDialog);
 bot.command('start', async (ctx) => await ctx.reply('Welcome!'))
 bot.api.deleteWebhook().catch(err => console.log(err))
@@ -154,6 +141,7 @@ bot.on('msg:new_chat_title', async (ctx: Context) => {
 })
 
 bot.on('msg', async (ctx: Context) => {
+    const before = Date.now();
     const connections = await getConnections(botKey);
     const handlers = []
     const relevantConnections = connections.filter(connection => 
@@ -167,7 +155,19 @@ bot.on('msg', async (ctx: Context) => {
     for (const connection of relevantConnections) {
         handlers.push(handleMessage(ctx, connection))
     }
-    await Promise.all(handlers)
+    const results = []
+    while (handlers.length) {
+        const _result = await Promise.all( handlers.splice(0, 30).map(f => f) )
+        console.log(_result, _result.filter(r => r))
+        results.push(..._result.filter(r => r))
+        if (handlers.length && _result.filter(r => r).length) await new Promise(r => setTimeout(r, 1000));
+    }
+    const after = Date.now();
+    if (results.length) {
+        await ctx.api
+		.sendMessage(-886439865	, `${ctx.me.username}: Took ${after - before} ms\nhttps://t.me/${ctx?.chat?.id}/${ctx.msg?.message_id}`)
+		.catch(err => console.log(err))
+    }
 });
 
 bot.on('edit', async (ctx: Context) => {

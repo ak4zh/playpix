@@ -20,7 +20,7 @@ export const getConnections = async (botKey: string) => {
 			res = await connectionsDB.fetch(query, {last: res.last});
 			connections = connections.concat(res.items);
 		}
-		mycache.set(connectionsKey, connections, 10)
+		mycache.set(connectionsKey, connections, 60)
 	};
 	return mycache.get(connectionsKey) as Promise<Array<Connection>>;
 };
