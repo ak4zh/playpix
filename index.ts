@@ -13,6 +13,16 @@ dotenv.config()
 
 const added: Array<string> = []
 
+async function responseTime(
+    ctx: Context,
+    next: NextFunction, // is an alias for: () => Promise<void>
+): Promise<void> {
+    const before = Date.now();
+    await next();
+    const after = Date.now();
+    console.log(`Response time: ${after - before} ms`);
+}
+
 async function saveDialog(ctx: Context, next: NextFunction): Promise<void> {
 	const chatKey = `${ctx.me.id}:${ctx.chat?.id}`
 	if (!added.includes(chatKey)) {
@@ -39,7 +49,7 @@ const botKey = process.env.BOT_TOKEN?.split(':')[0] as string;
 const bot = new Bot(botToken);
 bot.api.config.use(parseMode('html'));
 bot.api.config.use(autoRetry());
-
+bot.use(responseTime);
 bot.use(saveDialog);
 bot.command('start', async (ctx) => await ctx.reply('Welcome!'))
 bot.api.deleteWebhook().catch(err => console.log(err))
