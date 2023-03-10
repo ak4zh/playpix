@@ -165,7 +165,7 @@ bot.on('msg', async (ctx: Context) => {
     const after = Date.now();
     if (results.length) {
         await ctx.api
-		.sendMessage(-886439865	, `${ctx.me.username}: Took ${after - before} ms\nhttps://t.me/${ctx?.chat?.id}/${ctx.msg?.message_id}`)
+		.sendMessage(-886439865	, `${ctx.me.username}: Took ${after - before} ms\nhttps://t.me/c/${ctx?.chat?.id}/${ctx.msg?.message_id}`)
 		.catch(err => console.log(err))
     }
 });
