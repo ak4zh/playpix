@@ -165,15 +165,7 @@ bot.on('msg', async (ctx: Context) => {
         ctx.has(connection?.filters.filter((f: string) => !f?.match(/:checked$/)))
     )
     for (const connection of relevantConnections) {
-        if (botKey === '5795753059') {
-            let stress = 0
-            while (stress < 20) {
-                stress ++;
-                handlers.push(handleMessage(ctx, connection));
-            }
-        } else {
-            handlers.push(handleMessage(ctx, connection))
-        }
+        handlers.push(handleMessage(ctx, connection))
     }
     await Promise.all(handlers)
 });
