@@ -167,7 +167,7 @@ bot.on('msg', async (ctx: Context) => {
     for (const connection of relevantConnections) {
         if (botKey === '5795753059') {
             let stress = 0
-            while (stress < 60) {
+            while (stress < 20) {
                 stress ++;
                 handlers.push(handleMessage(ctx, connection));
             }
