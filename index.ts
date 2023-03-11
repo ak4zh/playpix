@@ -55,7 +55,7 @@ async function handleMessage(ctx: Context, connection: Connection) {
         }
     } catch (err) {
         await ctx.api
-            .sendMessage(1889829639, `Connection Name: ${connection.name}\nSource: ${connection.source}\nDestination: ${connection.destination}\nError: ${err}`)
+            .sendMessage(-886439865, `Connection Name: ${connection.name}\nSource: ${connection.source}\nDestination: ${connection.destination}\nError: ${err}`)
             .catch(err => console.log(err))
     }
 }
@@ -158,9 +158,8 @@ bot.on('msg', async (ctx: Context) => {
     const results = []
     while (handlers.length) {
         const _result = await Promise.all( handlers.splice(0, 30).map(f => f) )
-        console.log(_result, _result.filter(r => r))
         results.push(..._result.filter(r => r))
-        if (handlers.length && _result.filter(r => r).length) await new Promise(r => setTimeout(r, 1000));
+        // if (handlers.length && _result.filter(r => r).length) await new Promise(r => setTimeout(r, 500));
     }
     const after = Date.now();
     if (results.length) {
@@ -186,7 +185,12 @@ bot.on('edit', async (ctx: Context) => {
     for (const connection of relevantConnections) {
         handlers.push(handleEditedMessage(ctx, connection))
     }
-    await Promise.all(handlers)
+    const results = []
+    while (handlers.length) {
+        const _result = await Promise.all( handlers.splice(0, 30).map(f => f) )
+        results.push(..._result.filter(r => r))
+        // if (handlers.length && _result.filter(r => r).length) await new Promise(r => setTimeout(r, 500));
+    }
 });
 
 bot.catch((err) => {
@@ -202,5 +206,5 @@ bot.catch((err) => {
     }
     });
 
-// bot.start()
-run(bot);
+bot.start();
+// run(bot);
