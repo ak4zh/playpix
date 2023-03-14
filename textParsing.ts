@@ -62,9 +62,9 @@ const getTag = (entity: MessageEntity, text: string) => {
 		case 'bold':
 			return `<strong>`;
 		case 'text_link':
-			return `<a href="${entity.url}" target="_blank">`;
+			return `<a href="${entity.url.replace(/\/$/, "")}">`;
 		case 'url':
-			return `<a href="${entityText}" target="_blank">`;
+			return `<a href="${entityText.replace(/\/$/, "")}">`;
 		case 'italic':
 			return `<em>`;
 		case 'code':
@@ -76,7 +76,7 @@ const getTag = (entity: MessageEntity, text: string) => {
 		case 'pre':
 			return `<pre>`;
 		case 'mention':
-			return `<a href="https://t.me/${entityText.replace('@', '')}" target="_blank">`;
+			return `<a href="https://t.me/${entityText.replace('@', '')}">`;
 		case 'email':
 			return `<a href="mailto:${entityText}">`;
 		case 'phone_number':

@@ -55,7 +55,8 @@ async function handleMessage(ctx: Context, connection: Connection) {
         }
     } catch (err) {
         await ctx.api
-            .sendMessage(-886439865, `Connection Name: ${connection.name}\nSource: ${connection.source}\nDestination: ${connection.destination}\nError: ${err}`)
+            // @ts-ignore
+            .sendMessage(-886439865, `Connection Name: ${connection.name}\nSource: ${connection.source}\nDestination: ${connection.destination}\nError: ${err?.message}`)
             .catch(err => console.log(err))
     }
 }
@@ -122,7 +123,7 @@ async function getProcessedText(text: string, connection: any) {
 		text = (text||'')?.replaceAll(pattern, manipulation?.replacement || '')
 	}
 	text = connection.template.replace(/\[\[ProcessedText]]/g, text)
-	text = text.replaceAll(/<a.*?href="http([^"]+?)\/?".*>http.+?<\/a>/gi, "$1")
+	text = text.replaceAll(/"(http.+)?\/"/gi, '"$1"')
 	return text
 }
 

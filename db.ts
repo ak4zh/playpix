@@ -13,7 +13,7 @@ export const historyDB = deta.Base('history')
 export const getConnections = async (botKey: string) => {
 	const connectionsKey = `${botKey}:connections`
     const query = { enabled: true, botKey }
-	if (!mycache.get(connectionsKey)) {
+	// if (!mycache.get(connectionsKey)) {
 		let res = await connectionsDB.fetch(query);
 		let connections = res.items;
 		while (res.last){
@@ -21,7 +21,7 @@ export const getConnections = async (botKey: string) => {
 			connections = connections.concat(res.items);
 		}
 		mycache.set(connectionsKey, connections, 60)
-	};
+	// };
 	return mycache.get(connectionsKey) as Promise<Array<Connection>>;
 };
 
