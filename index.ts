@@ -122,7 +122,7 @@ async function getProcessedText(text: string, connection: any) {
 		text = (text||'')?.replaceAll(pattern, manipulation?.replacement || '')
 	}
 	text = connection.template.replace(/\[\[ProcessedText]]/g, text)
-	text = text.replaceAll(/<a.*?href="([^"]+?)\/?".*>.+?<\/a>/gi, "$1")
+	text = text.replaceAll(/<a.*?href="http([^"]+?)\/?".*>http.+?<\/a>/gi, "$1")
 	return text
 }
 
