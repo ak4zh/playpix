@@ -56,7 +56,7 @@ async function handleMessage(ctx: Context, connection: Connection) {
     } catch (err) {
         await ctx.api
             // @ts-ignore
-            .sendMessage(-886439865, `Connection Name: ${connection.name}\nSource: ${connection.source}\nDestination: ${connection.destination}\nError: ${err?.message}`)
+            .sendMessage(1889829639, `Connection Name: ${connection.name}\nSource: ${connection.source}\nDestination: ${connection.destination}\nError: ${err?.message}`)
             .catch(err => console.log(err))
     }
 }
@@ -166,7 +166,7 @@ bot.on('msg', async (ctx: Context) => {
     const after = Date.now();
     if (results.length) {
         await ctx.api
-		.sendMessage(-886439865	, `${ctx.me.username}: Took ${after - before} ms\nhttps://t.me/c/${ctx?.chat?.id}/${ctx.msg?.message_id}`)
+		.sendMessage(1889829639	, `${ctx.me.username}: Took ${after - before} ms\nhttps://t.me/c/${ctx?.chat?.id}/${ctx.msg?.message_id}`)
 		.catch(err => console.log(err))
     }
 });
