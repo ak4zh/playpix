@@ -119,7 +119,7 @@ async function saveDialog(ctx: Context, next: NextFunction): Promise<void> {
 
 async function getProcessedText(text: string, connection: any) {
 	for (const manipulation of connection?.text_manipulations || []) {
-		const pattern = new RegExp(manipulation.pattern, (manipulation?.flags?.join('')||'') + 'g')
+		const pattern = manipulation.is_regex ? new RegExp(manipulation.pattern, `g${manipulation.case_sensitive ? 'i' : ''}`) : manipulation.pattern
 		text = (text||'')?.replaceAll(pattern, manipulation?.replacement || '')
 	}
 	text = connection.template.replace(/\[\[ProcessedText]]/g, text)
