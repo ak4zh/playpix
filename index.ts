@@ -32,7 +32,7 @@ const handleMessage = async (ctx: Context, connection: Connection) => {
     try {
         // @ts-ignore
         if (ctx?.msg?.poll) { 
-            return await ctx.copyMessage(destination);
+            return ctx.copyMessage(destination);
         } else {
             let reply_to_message_id: number|undefined = undefined
             // @ts-ignore
@@ -44,16 +44,16 @@ const handleMessage = async (ctx: Context, connection: Connection) => {
             const originalText = parseTelegramMessage(ctx) || '';
             if (connection.sendType === 'fwd') {
                 // @ts-ignore
-                return await ctx.forwardMessage(destination);
+                return ctx.forwardMessage(destination);
             } else {
                 const processedText = await getProcessedText(originalText, connection);
                 // @ts-ignore
                 const sentMessage = ctx?.msg?.text ? await ctx.api.sendMessage(destination, processedText, { reply_to_message_id, disable_web_page_preview }) : await ctx.copyMessage(destination, { caption: processedText, reply_to_message_id, disable_web_page_preview })
-                await historyDB.insert({ botKey, connection: connection.key, source, destination, source_msg_id, destination_msg_id: sentMessage.message_id })
+                return historyDB.insert({ botKey, connection: connection.key, source, destination, source_msg_id, destination_msg_id: sentMessage.message_id })
             }
         }
     } catch (err) {
-        await ctx.api
+        return ctx.api
             // @ts-ignore
             .sendMessage(1889829639, `Connection Name: ${connection.name}\nSource: ${connection.source}\nDestination: ${connection.destination}\nError: ${err?.message}`)
             .catch(err => console.log(err))
@@ -162,6 +162,7 @@ bot.on('msg', async (ctx: Context) => {
         results.push(..._result.filter(r => r))
         if (handlers.length && _result.filter(r => r).length) await new Promise(r => setTimeout(r, 1000));
     }
+
     const after = Date.now();
     if (results.length) {
         await ctx.api
