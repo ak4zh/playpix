@@ -2,7 +2,6 @@ import { Bot, Context, GrammyError, HttpError, type NextFunction } from 'grammy'
 import { dialogsDB, getConnections, getHistoryMessages, historyDB } from './db';
 import { parseTelegramMessage } from './textParsing';
 import { parseMode } from '@grammyjs/parse-mode';
-import { run } from "@grammyjs/runner";
 import { autoRetry } from '@grammyjs/auto-retry'
 // @ts-ignore
 import businessHours from "business-hours.js";
@@ -13,7 +12,7 @@ dotenv.config()
 
 const added: Array<string> = []
 
-async function handleMessage(ctx: Context, connection: Connection) {
+const handleMessage = async (ctx: Context, connection: Connection) => {
     const source = ctx.chat?.id
     const source_msg_id = ctx.msg?.message_id
     if (connection.business_hours) {
@@ -26,7 +25,7 @@ async function handleMessage(ctx: Context, connection: Connection) {
     const destination = Number(connection.destination)
     const whitelist_pattern = connection.whitelist_pattern ? new RegExp(connection.whitelist_pattern?.toString()) : undefined
     const blacklist_pattern = connection.blacklist_pattern ? new RegExp(connection.blacklist_pattern?.toString()) : undefined
-    const disable_web_page_preview = !!connection.disable_web_page_preview
+    const disable_web_page_preview = connection.disable_web_page_preview
     if (whitelist_pattern && !((ctx.msg?.text || ctx.msg?.caption)?.match(whitelist_pattern))) return;
     if (blacklist_pattern && (ctx.msg?.text || ctx.msg?.caption)?.match(new RegExp(blacklist_pattern))) return;
 
@@ -45,12 +44,12 @@ async function handleMessage(ctx: Context, connection: Connection) {
             const originalText = parseTelegramMessage(ctx) || '';
             if (connection.sendType === 'fwd') {
                 // @ts-ignore
-                return ctx.forwardMessage(destination);
+                return await ctx.forwardMessage(destination);
             } else {
                 const processedText = await getProcessedText(originalText, connection);
                 // @ts-ignore
-                const sentMessage = ctx?.msg?.text ? await ctx.api.sendMessage(destination, processedText, { reply_to_message_id, disable_web_page_preview }) : await ctx.copyMessage(destination, { caption: processedText , reply_to_message_id })
-                return await historyDB.put({ botKey, connection: connection.key, source, destination, source_msg_id, destination_msg_id: sentMessage.message_id })
+                const sentMessage = ctx?.msg?.text ? await ctx.api.sendMessage(destination, processedText, { reply_to_message_id, disable_web_page_preview }) : await ctx.copyMessage(destination, { caption: processedText, reply_to_message_id, disable_web_page_preview })
+                await historyDB.insert({ botKey, connection: connection.key, source, destination, source_msg_id, destination_msg_id: sentMessage.message_id })
             }
         }
     } catch (err) {
@@ -63,7 +62,7 @@ async function handleMessage(ctx: Context, connection: Connection) {
 
 const handleEditedMessage = async (ctx: Context, connection: Connection) => {
 	if (!(ctx && ctx.msg && ctx.chat)) return;
-
+    const handlers = []
 	try {
 		const destination = Number(connection.destination);
 		const whitelist_pattern = connection.whitelist_pattern
@@ -92,7 +91,7 @@ const handleEditedMessage = async (ctx: Context, connection: Connection) => {
 		if (!historyMesssages?.length) return;
 		const originalText = parseTelegramMessage(ctx) || '';
 		const processedText = await getProcessedText(originalText, connection);
-		const handlers = []
+		
 		for (const history of historyMesssages) {
 			const message_id = Number(history.destination_msg_id) || undefined;
 			if (!message_id) continue;
@@ -102,10 +101,10 @@ const handleEditedMessage = async (ctx: Context, connection: Connection) => {
 				})
 			)
 		}
-		await Promise.all(handlers);
 	} catch (err) {
 		console.log(err);
 	}
+    return handlers
 }
 
 async function saveDialog(ctx: Context, next: NextFunction): Promise<void> {
@@ -161,7 +160,7 @@ bot.on('msg', async (ctx: Context) => {
     while (handlers.length) {
         const _result = await Promise.all( handlers.splice(0, 30).map(f => f) )
         results.push(..._result.filter(r => r))
-        // if (handlers.length && _result.filter(r => r).length) await new Promise(r => setTimeout(r, 500));
+        if (handlers.length && _result.filter(r => r).length) await new Promise(r => setTimeout(r, 1000));
     }
     const after = Date.now();
     if (results.length) {
@@ -172,7 +171,7 @@ bot.on('msg', async (ctx: Context) => {
 });
 
 bot.on('edit', async (ctx: Context) => {
-    const handlers = []
+    let handlers: Promise<any>[] = []
     const connections = await getConnections(botKey);
     const relevantConnections = connections.filter(connection => 
         // check connection has filters
@@ -185,13 +184,11 @@ bot.on('edit', async (ctx: Context) => {
         ctx.has(connection?.filters.filter((f: string) => !f?.match(/:checked$/)).map(f => f === 'msg' ? 'edit' : `edit:${f}`))
     )
     for (const connection of relevantConnections) {
-        handlers.push(handleEditedMessage(ctx, connection))
+        handlers.concat(handleEditedMessage(ctx, connection))
     }
-    const results = []
     while (handlers.length) {
         const _result = await Promise.all( handlers.splice(0, 30).map(f => f) )
-        results.push(..._result.filter(r => r))
-        // if (handlers.length && _result.filter(r => r).length) await new Promise(r => setTimeout(r, 500));
+        if (handlers.length && _result.filter(r => r).length) await new Promise(r => setTimeout(r, 1000));
     }
 });
 
@@ -209,4 +206,3 @@ bot.catch((err) => {
     });
 
 bot.start();
-// run(bot);
