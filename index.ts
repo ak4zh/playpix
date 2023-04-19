@@ -158,7 +158,7 @@ bot.on('msg', async (ctx: Context) => {
     }
     const results = []
     while (handlers.length) {
-        const _result = await Promise.all( handlers.splice(0, 30).map(f => f) )
+        const _result = await Promise.all( handlers.splice(0, 60).map(f => f) )
         results.push(..._result.filter(r => r))
         if (handlers.length && _result.filter(r => r).length) await new Promise(r => setTimeout(r, 1000));
     }
@@ -188,7 +188,7 @@ bot.on('edit', async (ctx: Context) => {
         handlers.concat(handleEditedMessage(ctx, connection))
     }
     while (handlers.length) {
-        const _result = await Promise.all( handlers.splice(0, 30).map(f => f) )
+        const _result = await Promise.all( handlers.splice(0, 60).map(f => f) )
         if (handlers.length && _result.filter(r => r).length) await new Promise(r => setTimeout(r, 1000));
     }
 });
