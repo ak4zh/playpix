@@ -156,18 +156,12 @@ bot.on('msg', async (ctx: Context) => {
     for (const connection of relevantConnections) {
         handlers.push(handleMessage(ctx, connection))
     }
-    const results = []
-    while (handlers.length) {
-        const _result = await Promise.all( handlers.splice(0, 60).map(f => f) )
-        results.push(..._result.filter(r => r))
-        if (handlers.length && _result.filter(r => r).length) await new Promise(r => setTimeout(r, 1000));
-    }
-
+    const results = await Promise.all(handlers) 
     const after = Date.now();
-    if (results.length) {
+    if (results.filter(r => r).length) {
         await ctx.api
-		.sendMessage(1889829639	, `${ctx.me.username}: Took ${after - before} ms\nhttps://t.me/c/${ctx?.chat?.id}/${ctx.msg?.message_id}`)
-		.catch(err => console.log(err))
+            .sendMessage(1889829639	, `${ctx.me.username}: Took ${after - before} ms\nhttps://t.me/c/${ctx?.chat?.id}/${ctx.msg?.message_id}`)
+            .catch(err => console.log(err))
     }
 });
 
@@ -185,12 +179,9 @@ bot.on('edit', async (ctx: Context) => {
         ctx.has(connection?.filters.filter((f: string) => !f?.match(/:checked$/)).map(f => f === 'msg' ? 'edit' : `edit:${f}`))
     )
     for (const connection of relevantConnections) {
-        handlers.concat(handleEditedMessage(ctx, connection))
+        handlers.push(handleEditedMessage(ctx, connection))
     }
-    while (handlers.length) {
-        const _result = await Promise.all( handlers.splice(0, 60).map(f => f) )
-        if (handlers.length && _result.filter(r => r).length) await new Promise(r => setTimeout(r, 1000));
-    }
+    await Promise.all(handlers)
 });
 
 bot.catch((err) => {
