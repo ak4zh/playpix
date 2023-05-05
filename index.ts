@@ -12,7 +12,7 @@ dotenv.config()
 
 const added: Array<string> = []
 
-const handleMessage = async (ctx: Context, connection: Connection) => {
+const handleMessage = async (ctx: Context, connection: Connection) => { 
     const source = ctx.chat?.id
     const source_msg_id = ctx.msg?.message_id
     if (connection.business_hours) {
@@ -25,7 +25,7 @@ const handleMessage = async (ctx: Context, connection: Connection) => {
     const destination = Number(connection.destination)
     const whitelist_pattern = connection.whitelist_pattern ? new RegExp(connection.whitelist_pattern?.toString()) : undefined
     const blacklist_pattern = connection.blacklist_pattern ? new RegExp(connection.blacklist_pattern?.toString()) : undefined
-    const disable_web_page_preview = connection.disable_web_page_preview
+    const disable_web_page_preview = [true, 'on'].includes(connection.disable_web_page_preview || '') ? true : false
     if (whitelist_pattern && !((ctx.msg?.text || ctx.msg?.caption)?.match(whitelist_pattern))) return;
     if (blacklist_pattern && (ctx.msg?.text || ctx.msg?.caption)?.match(new RegExp(blacklist_pattern))) return;
 
@@ -158,11 +158,11 @@ bot.on('msg', async (ctx: Context) => {
     }
     const results = await Promise.all(handlers) 
     const after = Date.now();
-    if (results.filter(r => r).length) {
-        await ctx.api
-            .sendMessage(1889829639	, `${ctx.me.username}: Took ${after - before} ms\nhttps://t.me/c/${ctx?.chat?.id}/${ctx.msg?.message_id}`)
-            .catch(err => console.log(err))
-    }
+    // if (results.filter(r => r).length) {
+    //     await ctx.api
+    //         .sendMessage(1889829639	, `${ctx.me.username}: Took ${after - before} ms\nhttps://t.me/c/${ctx?.chat?.id}/${ctx.msg?.message_id}`)
+    //         .catch(err => console.log(err))
+    // }
 });
 
 bot.on('edit', async (ctx: Context) => {
@@ -195,6 +195,6 @@ bot.catch((err) => {
     } else {
         console.error("Unknown error:", e);
     }
-    });
+});
 
 bot.start();

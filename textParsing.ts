@@ -10,15 +10,14 @@ export const KNOW_ENTITY_TYPES = [
 	'strikethrough',
 	'underline',
 	'pre',
-	'mention',
-	'email',
-	'phone_number'
+	// 'mention',
+	// 'email',
+	// 'phone_number'
 ];
 
 export const parseTelegramMessage = (ctx: Context) => {
 	const text = ctx.msg?.text || ctx.msg?.caption;
 	const entities = (ctx.msg?.entities || ctx.msg?.caption_entities)?.filter((e) => KNOW_ENTITY_TYPES.includes(e.type));
-
 	if (!entities || !text) {
 		return text;
 	}
