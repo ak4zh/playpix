@@ -158,11 +158,11 @@ bot.on('msg', async (ctx: Context) => {
     }
     const results = await Promise.all(handlers) 
     const after = Date.now();
-    // if (results.filter(r => r).length) {
-    //     await ctx.api
-    //         .sendMessage(1889829639	, `${ctx.me.username}: Took ${after - before} ms\nhttps://t.me/c/${ctx?.chat?.id}/${ctx.msg?.message_id}`)
-    //         .catch(err => console.log(err))
-    // }
+    if (results.filter(r => r).length) {
+        await ctx.api
+            .sendMessage(1889829639	, `${ctx.me.username}: Took ${after - before} ms\nhttps://t.me/c/${ctx?.chat?.id}/${ctx.msg?.message_id}`)
+            .catch(err => console.log(err))
+    }
 });
 
 bot.on('edit', async (ctx: Context) => {
