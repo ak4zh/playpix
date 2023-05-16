@@ -61,7 +61,7 @@ const handleMessage = async (ctx: Context, connection: Connection) => {
 }
 
 const handleEditedMessage = async (ctx: Context, connection: Connection) => {
-	if (!(ctx && ctx.msg && ctx.chat)) return;
+    if (!(ctx && ctx.msg && ctx.chat)) return;
     const handlers = []
 	try {
 		const destination = Number(connection.destination);
@@ -163,25 +163,6 @@ bot.on('msg', async (ctx: Context) => {
             .sendMessage(1889829639	, `${ctx.me.username}: Took ${after - before} ms\nhttps://t.me/c/${ctx?.chat?.id}/${ctx.msg?.message_id}`)
             .catch(err => console.log(err))
     }
-});
-
-bot.on('edit', async (ctx: Context) => {
-    let handlers: Promise<any>[] = []
-    const connections = await getConnections(botKey);
-    const relevantConnections = connections.filter(connection => 
-        // check connection has filters
-        connection?.filters?.length &&
-        // select connections for this source
-        connection.source === ctx?.chat?.id?.toString() &&
-        // check message type is selected
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        ctx.has(connection?.filters.filter((f: string) => !f?.match(/:checked$/)).map(f => f === 'msg' ? 'edit' : `edit:${f}`))
-    )
-    for (const connection of relevantConnections) {
-        handlers.push(handleEditedMessage(ctx, connection))
-    }
-    await Promise.all(handlers)
 });
 
 bot.catch((err) => {
