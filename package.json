@@ -16,7 +16,7 @@
     "business-hours.js": "^2.0.2",
     "deta": "^1.1.0",
     "dotenv": "^16.0.3",
-    "grammy": "^1.14.1",
+    "grammy": "^1.16.1",
     "grammy-middlewares": "^1.0.11",
     "node-cache": "^5.1.2"
   },
