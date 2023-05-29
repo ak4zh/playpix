@@ -18,7 +18,8 @@
     "dotenv": "^16.0.3",
     "grammy": "^1.16.1",
     "grammy-middlewares": "^1.0.11",
-    "node-cache": "^5.1.2"
+    "node-cache": "^5.1.2",
+    "source-map-support": "^0.5.21"
   },
   "devDependencies": {
     "@types/node": "^18.14.5",
