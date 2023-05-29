@@ -8,6 +8,7 @@ import businessHours from "business-hours.js";
 import moment from 'moment';
 import * as dotenv from 'dotenv';
 import { Connection, defaultBusinessHours, parseBusinessHour } from './utils';
+import { ignoreOld } from "grammy-middlewares";
 dotenv.config()
 
 const added: Array<string> = []
@@ -132,6 +133,7 @@ if (!botToken) {
 }
 const botKey = process.env.BOT_TOKEN?.split(':')[0] as string;
 const bot = new Bot(botToken);
+bot.use(ignoreOld());
 bot.api.config.use(parseMode('html'));
 bot.api.config.use(autoRetry());
 bot.use(saveDialog);
